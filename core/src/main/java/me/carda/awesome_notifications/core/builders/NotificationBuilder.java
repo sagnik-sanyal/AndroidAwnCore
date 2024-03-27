@@ -124,7 +124,7 @@ public class NotificationBuilder {
     // ****************************************************************
 
     public void forceBringAppToForeground(Context context) {
-        Intent startActivity = new Intent(context, getMainTargetClass(context));
+        Intent startActivity = new Intent(context, getMainTargetClass(context, false));
         startActivity.setFlags(
                 // Intent.FLAG_ACTIVITY_REORDER_TO_FRONT |
                 Intent.FLAG_ACTIVITY_SINGLE_TOP |
@@ -288,12 +288,10 @@ public class NotificationBuilder {
                 notificationModel,
                 channelModel,
                 actionType,
-                notificationModel.content.category == NotificationCategory.Call ?
-                        tryResolveClassName("CallActivity") :
-                        actionType ==
-                                ActionType.Default ?
-                                getMainTargetClass(context) :
-                                AwesomeNotifications.actionReceiverClass
+                actionType ==
+                        ActionType.Default ?
+                        getMainTargetClass(context, notificationModel.content.category == NotificationCategory.Call) :
+                        AwesomeNotifications.actionReceiverClass
         );
 
         if (actionType == ActionType.Default)
@@ -384,15 +382,22 @@ public class NotificationBuilder {
         }
     }
 
-    public Class getMainTargetClass(
-            Context applicationContext
-    ) {
+    private Class getCallTargetClass(String mainActivityClass) {
+        final String packageName = mainActivityClass.split("\\.")[0];
+        final String callActivityClass = packageName + ".CallActivity";
+        Class clazz = tryResolveClassName(callActivityClass);
+        if (clazz != null) return clazz;
+        return tryResolveClassName(mainActivityClass);
+    }
+
+    public Class getMainTargetClass(Context applicationContext, boolean isCallActivity) {
         if (mainTargetClassName == null)
             updateMainTargetClassName(applicationContext);
 
         if (mainTargetClassName == null)
             mainTargetClassName = AwesomeNotifications.getPackageName(applicationContext) + ".MainActivity";
 
+        if (isCallActivity) return getCallTargetClass(mainTargetClassName);
         Class clazz = tryResolveClassName(mainTargetClassName);
         if (clazz != null) return clazz;
 
@@ -1073,7 +1078,7 @@ public class NotificationBuilder {
                     channel,
                     buttonProperties.actionType,
                     actionType == ActionType.Default ?
-                            getMainTargetClass(context) :
+                            getMainTargetClass(context, false) :
                             AwesomeNotifications.actionReceiverClass
             );
 
@@ -1624,7 +1629,7 @@ public class NotificationBuilder {
                                 channel,
                                 actionType,
                                 actionType == ActionType.Default ?
-                                        getMainTargetClass(context) :
+                                        getMainTargetClass(context, false) :
                                         AwesomeNotifications.actionReceiverClass
                         );
 
